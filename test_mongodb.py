@@ -2,6 +2,7 @@ from pymongo import MongoClient
 from pymongo.server_api import ServerApi
 from dotenv import load_dotenv
 import os
+import certifi
 
 def test_mongodb_connection():
     # Load environment variables
@@ -12,9 +13,15 @@ def test_mongodb_connection():
     database_name = os.getenv('DATABASE_NAME', 'attendance_db')
     
     try:
-        # Create MongoDB client with latest Server API version
+        # Create MongoDB client with SSL/TLS settings
         print("\nAttempting to connect to MongoDB Atlas...")
-        client = MongoClient(mongodb_uri, server_api=ServerApi('1'))
+        client = MongoClient(
+            mongodb_uri,
+            tls=True,
+            tlsCAFile=certifi.where(),
+            server_api=ServerApi('1'),
+            serverSelectionTimeoutMS=5000
+        )
         
         # Test connection by accessing server info
         server_info = client.server_info()

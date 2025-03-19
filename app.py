@@ -10,15 +10,25 @@ import qrcode
 from geopy.geocoders import Nominatim
 import base64
 from config import Config
+import mediapipe as mp
+from PIL import Image
+import io
+from sklearn.metrics.pairwise import cosine_similarity
+import certifi
 
 load_dotenv()
 
 app = Flask(__name__)
 CORS(app)
 
-# MongoDB Atlas connection
+# MongoDB Atlas connection with SSL certificate
 try:
-    client = MongoClient(Config.MONGODB_URI)
+    client = MongoClient(
+        Config.MONGODB_URI,
+        tls=True,
+        tlsCAFile=certifi.where(),
+        serverSelectionTimeoutMS=5000
+    )
     # Test the connection
     client.admin.command('ping')
     print("Successfully connected to MongoDB Atlas!")
@@ -31,8 +41,14 @@ except Exception as e:
 users_collection = db[Config.USERS_COLLECTION]
 attendance_collection = db[Config.ATTENDANCE_COLLECTION]
 
-# Initialize face detection model
-face_cascade = cv2.CascadeClassifier(cv2.data.haarcascades + 'haarcascade_frontalface_default.xml')
+# Initialize MediaPipe Face Mesh
+mp_face_mesh = mp.solutions.face_mesh
+face_mesh = mp_face_mesh.FaceMesh(
+    static_image_mode=True,
+    max_num_faces=1,
+    min_detection_confidence=0.5,
+    min_tracking_confidence=0.5
+)
 
 def process_face_image(image_data):
     try:
@@ -41,56 +57,90 @@ def process_face_image(image_data):
         nparr = np.frombuffer(base64.b64decode(encoded_data), np.uint8)
         img = cv2.imdecode(nparr, cv2.IMREAD_COLOR)
         
-        # Convert to grayscale for face detection
-        gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+        # Convert BGR to RGB
+        rgb_img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
         
-        # Detect faces
-        faces = face_cascade.detectMultiScale(gray, 1.1, 4)
+        # Get face mesh landmarks
+        results = face_mesh.process(rgb_img)
         
-        if len(faces) == 0:
-            return None
+        if not results.multi_face_landmarks:
+            return None, "No face detected"
             
-        # Get the largest face
-        largest_face = max(faces, key=lambda rect: rect[2] * rect[3])
-        x, y, w, h = largest_face
+        if len(results.multi_face_landmarks) > 1:
+            return None, "Multiple faces detected. Please ensure only one person is in the frame."
+            
+        # Extract face landmarks and convert to feature vector
+        face_landmarks = results.multi_face_landmarks[0]
+        landmarks_array = np.array([[lm.x, lm.y, lm.z] for lm in face_landmarks.landmark])
         
-        # Extract face encoding (simple feature vector for demo)
-        face_img = gray[y:y+h, x:x+w]
-        face_img = cv2.resize(face_img, (100, 100))
-        face_encoding = face_img.flatten().tolist()
+        # Normalize landmarks
+        landmarks_array = (landmarks_array - landmarks_array.mean(axis=0)) / landmarks_array.std(axis=0)
         
-        return face_encoding
+        return landmarks_array.flatten().tolist(), None
         
     except Exception as e:
         print(f"Error processing face image: {e}")
-        return None
+        return None, str(e)
 
 def verify_liveness(image_data):
     try:
-        # Basic liveness detection (presence of face)
-        face_encoding = process_face_image(image_data)
-        return face_encoding is not None
+        # Convert base64 image to PIL Image
+        encoded_data = image_data.split(',')[1]
+        img_bytes = base64.b64decode(encoded_data)
+        img = Image.open(io.BytesIO(img_bytes))
+        
+        # Convert to numpy array
+        img_np = np.array(img)
+        rgb_img = cv2.cvtColor(img_np, cv2.COLOR_BGR2RGB)
+        
+        # Enhanced liveness detection using MediaPipe Face Mesh
+        results = face_mesh.process(rgb_img)
+        
+        if not results.multi_face_landmarks:
+            return False, "No face detected"
+            
+        # Check face mesh landmarks to ensure it's a real face
+        face_landmarks = results.multi_face_landmarks[0]
+        if len(face_landmarks.landmark) < 468:  # MediaPipe Face Mesh has 468 landmarks
+            return False, "Could not detect all facial features"
+            
+        # Check if image is too blurry
+        gray = cv2.cvtColor(img_np, cv2.COLOR_RGB2GRAY)
+        blur_value = cv2.Laplacian(gray, cv2.CV_64F).var()
+        if blur_value < 100:
+            return False, "Image too blurry, please ensure good lighting"
+            
+        return True, None
     except:
-        return False
+        return False, "Liveness check failed"
 
-def compare_faces(known_encoding, new_encoding, tolerance=0.6):
+def compare_faces(known_encoding, new_encoding, threshold=0.85):
     if not known_encoding or not new_encoding:
         return False
-    # Simple Euclidean distance comparison
-    known_array = np.array(known_encoding)
-    new_array = np.array(new_encoding)
-    distance = np.linalg.norm(known_array - new_array)
-    return distance < tolerance * len(known_array)
+        
+    # Convert to numpy arrays
+    known_array = np.array(known_encoding).reshape(1, -1)
+    new_array = np.array(new_encoding).reshape(1, -1)
+    
+    # Calculate cosine similarity
+    similarity = cosine_similarity(known_array, new_array)[0][0]
+    return similarity >= threshold
 
 @app.route('/api/register', methods=['POST'])
 def register_user():
     try:
         data = request.get_json()
         image_data = data.get('face_image')
-        face_encoding = process_face_image(image_data)
         
-        if not face_encoding:
-            return jsonify({'error': 'No face detected in image'}), 400
+        # Process face and check for errors
+        face_encoding, error = process_face_image(image_data)
+        if error:
+            return jsonify({'error': error}), 400
+            
+        # Verify liveness
+        is_live, liveness_error = verify_liveness(image_data)
+        if not is_live:
+            return jsonify({'error': f'Liveness check failed: {liveness_error}'}), 400
             
         user_data = {
             'name': data.get('name'),
@@ -104,7 +154,12 @@ def register_user():
             return jsonify({'error': 'Employee ID already exists'}), 400
             
         result = users_collection.insert_one(user_data)
-        return jsonify({'message': 'User registered successfully', 'id': str(result.inserted_id)}), 201
+        return jsonify({
+            'message': 'User registered successfully',
+            'id': str(result.inserted_id),
+            'name': user_data['name'],
+            'employee_id': user_data['employee_id']
+        }), 201
     except Exception as e:
         print(f"Registration error: {e}")
         return jsonify({'error': str(e)}), 400
@@ -116,32 +171,40 @@ def mark_attendance_face():
         image_data = data.get('face_image')
         location = data.get('location')
         
-        # Verify liveness
-        if not verify_liveness(image_data):
-            return jsonify({'error': 'Liveness check failed'}), 400
+        # Verify liveness first
+        is_live, liveness_error = verify_liveness(image_data)
+        if not is_live:
+            return jsonify({'error': f'Liveness check failed: {liveness_error}'}), 400
 
-        # Process face recognition
-        face_encoding = process_face_image(image_data)
-        if not face_encoding:
-            return jsonify({'error': 'No face detected in image'}), 400
+        # Process face and check for errors
+        face_encoding, error = process_face_image(image_data)
+        if error:
+            return jsonify({'error': error}), 400
             
         # Find matching user
         users = users_collection.find({})
         matched_user = None
+        highest_similarity = 0
         
         for user in users:
-            if compare_faces(user.get('face_encoding'), face_encoding):
+            similarity = cosine_similarity(
+                np.array(user.get('face_encoding')).reshape(1, -1),
+                np.array(face_encoding).reshape(1, -1)
+            )[0][0]
+            if similarity > highest_similarity:
+                highest_similarity = similarity
                 matched_user = user
-                break
         
-        if matched_user:
+        if matched_user and highest_similarity >= 0.85:
             attendance_record = create_attendance_record(matched_user['employee_id'], 'face', location)
             return jsonify({
                 'message': 'Attendance marked successfully',
                 'employee_name': matched_user.get('name'),
+                'employee_id': matched_user.get('employee_id'),
+                'confidence': float(highest_similarity),
                 'timestamp': attendance_record['timestamp']
             }), 200
-        return jsonify({'error': 'User not found'}), 404
+        return jsonify({'error': 'User not found or confidence too low. Please register first or try again with better lighting.'}), 404
     except Exception as e:
         print(f"Face attendance error: {e}")
         return jsonify({'error': str(e)}), 400
