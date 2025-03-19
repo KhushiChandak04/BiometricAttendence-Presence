@@ -1,19 +1,15 @@
-import React, { useState, useRef, useContext } from 'react';
-import Webcam from 'react-webcam';
-import { 
-  Button, 
-  Container, 
-  Paper, 
-  Typography, 
-  TextField, 
-  CircularProgress,
-  IconButton,
-  Switch,
-  Box,
-  useTheme
+import React from 'react';
+import {
+  Container,
+  Paper,
+  Typography,
+  TextField,
+  Button,
+  makeStyles,
+  Grid
 } from '@material-ui/core';
-import { makeStyles } from '@material-ui/core/styles';
-import { Brightness4, Brightness7 } from '@material-ui/icons';
+import { PersonAdd } from '@material-ui/icons';
+import Webcam from 'react-webcam';
 import axios from 'axios';
 
 const useStyles = makeStyles((theme) => ({
@@ -96,11 +92,6 @@ const useStyles = makeStyles((theme) => ({
         : 'rgba(0, 0, 0, 0.2)',
     },
   },
-  themeToggle: {
-    position: 'absolute',
-    top: theme.spacing(2),
-    right: theme.spacing(2),
-  },
   title: {
     color: theme.palette.primary.main,
     fontWeight: 600,
@@ -115,11 +106,10 @@ const useStyles = makeStyles((theme) => ({
 
 const Registration = () => {
   const classes = useStyles();
-  const theme = useTheme();
-  const webcamRef = useRef(null);
-  const [loading, setLoading] = useState(false);
-  const [message, setMessage] = useState('');
-  const [formData, setFormData] = useState({
+  const webcamRef = React.createRef(null);
+  const [loading, setLoading] = React.useState(false);
+  const [message, setMessage] = React.useState('');
+  const [formData, setFormData] = React.useState({
     name: '',
     employee_id: '',
   });
@@ -163,7 +153,7 @@ const Registration = () => {
   };
 
   return (
-    <Box className={classes.root}>
+    <Grid container className={classes.root}>
       <Container maxWidth="sm">
         <Paper elevation={3} className={classes.paper}>
           <Typography variant="h4" className={classes.title}>
@@ -180,9 +170,6 @@ const Registration = () => {
               name="name"
               value={formData.name}
               onChange={handleInputChange}
-              InputLabelProps={{
-                style: { color: theme.palette.text.primary }
-              }}
             />
 
             <TextField
@@ -194,9 +181,6 @@ const Registration = () => {
               name="employee_id"
               value={formData.employee_id}
               onChange={handleInputChange}
-              InputLabelProps={{
-                style: { color: theme.palette.text.primary }
-              }}
             />
 
             <Webcam
@@ -213,7 +197,7 @@ const Registration = () => {
               className={classes.button}
               disabled={loading}
             >
-              {loading ? <CircularProgress size={24} color="inherit" /> : 'Register Employee'}
+              {loading ? 'Loading...' : 'Register Employee'}
             </Button>
           </form>
 
@@ -221,9 +205,9 @@ const Registration = () => {
             <Typography 
               style={{
                 color: message.includes('error') 
-                  ? theme.palette.error.main 
-                  : theme.palette.success.main,
-                marginTop: theme.spacing(2),
+                  ? 'red'
+                  : 'green',
+                marginTop: '10px',
                 textAlign: 'center',
                 fontWeight: 500,
               }}
@@ -233,7 +217,7 @@ const Registration = () => {
           )}
         </Paper>
       </Container>
-    </Box>
+    </Grid>
   );
 };
 

@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { QrReader } from 'react-qr-reader';
+import QrReader from 'react-qr-reader';
 import { Container, Paper, Typography, CircularProgress } from '@material-ui/core';
 import { makeStyles } from '@material-ui/core/styles';
 import axios from 'axios';
@@ -90,9 +90,10 @@ const QRScanner = () => {
 
         <div className={classes.reader}>
           <QrReader
-            onResult={handleScan}
+            delay={300}
             onError={handleError}
-            constraints={{ facingMode: 'environment' }}
+            onScan={handleScan}
+            facingMode="environment"
             style={{ width: '100%' }}
           />
         </div>

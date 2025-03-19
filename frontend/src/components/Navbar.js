@@ -1,7 +1,7 @@
 import React from 'react';
-import { AppBar, Toolbar, Typography, Button, makeStyles, useTheme } from '@material-ui/core';
+import { AppBar, Toolbar, Typography, Button, makeStyles } from '@material-ui/core';
 import { Link as RouterLink, useLocation } from 'react-router-dom';
-import { AccountCircle, Dashboard, Face, QrCode2, PersonAdd } from '@material-ui/icons';
+import { AccountCircle, Dashboard, Face, CropFree, PersonAdd } from '@material-ui/icons';
 
 const useStyles = makeStyles((theme) => ({
   root: {
@@ -87,7 +87,6 @@ const useStyles = makeStyles((theme) => ({
 
 const Navbar = () => {
   const classes = useStyles();
-  const theme = useTheme();
   const location = useLocation();
 
   const isActive = (path) => location.pathname === path;
@@ -121,7 +120,7 @@ const Navbar = () => {
             to="/qr-scanner"
             className={`${classes.button} ${isActive('/qr-scanner') ? 'active' : ''}`}
           >
-            <QrCode2 className={classes.icon} />
+            <CropFree className={classes.icon} />
             QR Scanner
           </Button>
           <Button

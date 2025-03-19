@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   Container, 
   Grid, 
@@ -17,7 +17,7 @@ import {
 } from '@material-ui/core';
 import { 
   Face as FaceIcon,
-  QrCode as QrCodeIcon,
+  CropFree as QrCodeIcon,
   PersonAdd as PersonAddIcon,
   LocationOn as LocationIcon,
   Timeline as TimelineIcon,
@@ -176,9 +176,35 @@ const useStyles = makeStyles((theme) => ({
 
 const Dashboard = () => {
   const classes = useStyles();
-  const theme = useTheme();
   const history = useHistory();
   const [loading, setLoading] = useState(false);
+
+  // Add cleanup for any async operations
+  useEffect(() => {
+    let mounted = true;
+
+    // Your async operations here
+    const fetchData = async () => {
+      if (mounted) {
+        setLoading(true);
+        try {
+          // Your data fetching logic here
+        } catch (error) {
+          console.error('Error fetching data:', error);
+        } finally {
+          if (mounted) {
+            setLoading(false);
+          }
+        }
+      }
+    };
+
+    fetchData();
+
+    return () => {
+      mounted = false;
+    };
+  }, []);
 
   const stats = [
     { value: '157', label: 'Total Employees' },
