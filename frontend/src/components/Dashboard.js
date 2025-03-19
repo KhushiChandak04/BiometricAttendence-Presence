@@ -13,7 +13,13 @@ import {
   IconButton,
   Tooltip,
   Zoom,
-  CircularProgress
+  CircularProgress,
+  Table,
+  TableBody,
+  TableCell,
+  TableContainer,
+  TableHead,
+  TableRow,
 } from '@material-ui/core';
 import { 
   Face as FaceIcon,
@@ -23,19 +29,43 @@ import {
   Timeline as TimelineIcon,
   Group as GroupIcon,
   Settings as SettingsIcon,
-  Help as HelpIcon
+  Help as HelpIcon,
+  TrendingUp as TrendingUpIcon,
+  People as PeopleIcon
 } from '@material-ui/icons';
 import { useHistory } from 'react-router-dom';
 import { motion } from 'framer-motion';
+import { Line } from 'react-chartjs-2';
+import axios from 'axios';
 
 const useStyles = makeStyles((theme) => ({
   root: {
     flexGrow: 1,
     minHeight: 'calc(100vh - 64px)',
     padding: theme.spacing(4),
-    background: theme.palette.type === 'dark'
-      ? 'linear-gradient(45deg, #000428 30%, #004e92 90%)'
-      : 'linear-gradient(45deg, #2196F3 30%, #21CBF3 90%)',
+    background: 'linear-gradient(135deg, #1a1a2e 0%, #16213e 100%)',
+    position: 'relative',
+    overflow: 'hidden',
+    '&::before': {
+      content: '""',
+      position: 'absolute',
+      width: '200%',
+      height: '200%',
+      background: `repeating-linear-gradient(
+        transparent 0,
+        rgba(32, 43, 67, 0.3) 2px,
+        transparent 4px
+      )`,
+      animation: '$gridMove 20s linear infinite',
+    }
+  },
+  '@keyframes gridMove': {
+    '0%': {
+      transform: 'translate(-50%, -50%) rotate(0deg)',
+    },
+    '100%': {
+      transform: 'translate(-50%, -50%) rotate(360deg)',
+    },
   },
   container: {
     position: 'relative',
@@ -44,45 +74,36 @@ const useStyles = makeStyles((theme) => ({
   paper: {
     padding: theme.spacing(4),
     textAlign: 'center',
-    background: theme.palette.type === 'dark'
-      ? 'rgba(18, 18, 18, 0.8)'
-      : 'rgba(255, 255, 255, 0.8)',
+    background: 'rgba(255, 255, 255, 0.1)',
     backdropFilter: 'blur(10px)',
-    border: theme.palette.type === 'dark'
-      ? '1px solid rgba(81, 81, 81, 0.3)'
-      : '1px solid rgba(255, 255, 255, 0.3)',
+    border: '1px solid rgba(255, 255, 255, 0.1)',
     borderRadius: '20px',
+    boxShadow: '0 8px 32px 0 rgba(31, 38, 135, 0.37)',
   },
   welcomeTitle: {
-    color: theme.palette.type === 'dark' ? theme.palette.primary.main : theme.palette.primary.dark,
-    fontWeight: 700,
+    color: '#ffffff',
+    fontWeight: 800,
     letterSpacing: '0.1em',
     textTransform: 'uppercase',
     marginBottom: theme.spacing(1),
-    textShadow: theme.palette.type === 'dark'
-      ? '0 0 10px rgba(255, 0, 128, 0.5)'
-      : '0 0 10px rgba(33, 150, 243, 0.5)',
+    textShadow: '0 0 10px rgba(33, 150, 243, 0.5)',
+    fontFamily: "'Orbitron', sans-serif",
   },
   subtitle: {
-    color: theme.palette.type === 'dark' ? 'rgba(255, 255, 255, 0.7)' : 'rgba(0, 0, 0, 0.7)',
+    color: 'rgba(255, 255, 255, 0.7)',
     marginBottom: theme.spacing(4),
+    fontFamily: "'Rajdhani', sans-serif",
   },
   card: {
     height: '100%',
-    background: theme.palette.type === 'dark'
-      ? 'rgba(18, 18, 18, 0.6)'
-      : 'rgba(255, 255, 255, 0.6)',
+    background: 'rgba(255, 255, 255, 0.1)',
     backdropFilter: 'blur(10px)',
-    border: theme.palette.type === 'dark'
-      ? '1px solid rgba(81, 81, 81, 0.3)'
-      : '1px solid rgba(255, 255, 255, 0.3)',
+    border: '1px solid rgba(255, 255, 255, 0.1)',
     borderRadius: '15px',
     transition: 'all 0.3s ease-in-out',
     '&:hover': {
       transform: 'translateY(-8px)',
-      boxShadow: theme.palette.type === 'dark'
-        ? '0 8px 30px rgba(255, 0, 128, 0.2)'
-        : '0 8px 30px rgba(33, 150, 243, 0.2)',
+      boxShadow: '0 8px 30px rgba(33, 150, 243, 0.3)',
     },
   },
   cardContent: {
@@ -96,244 +117,277 @@ const useStyles = makeStyles((theme) => ({
   icon: {
     fontSize: 48,
     marginBottom: theme.spacing(2),
-    color: theme.palette.type === 'dark' ? theme.palette.primary.main : theme.palette.primary.dark,
-    filter: theme.palette.type === 'dark'
-      ? 'drop-shadow(0 0 8px rgba(255, 0, 128, 0.5))'
-      : 'drop-shadow(0 0 8px rgba(33, 150, 243, 0.5))',
+    color: '#2196F3',
+    filter: 'drop-shadow(0 0 8px rgba(33, 150, 243, 0.5))',
   },
-  featureTitle: {
-    color: theme.palette.type === 'dark' ? '#fff' : theme.palette.primary.dark,
-    fontWeight: 600,
-    marginBottom: theme.spacing(1),
-  },
-  description: {
-    color: theme.palette.type === 'dark' ? 'rgba(255, 255, 255, 0.7)' : 'rgba(0, 0, 0, 0.7)',
-    marginBottom: theme.spacing(2),
-  },
-  button: {
-    background: theme.palette.type === 'dark'
-      ? 'linear-gradient(45deg, #FF0080 30%, #FF8C00 90%)'
-      : 'linear-gradient(45deg, #2196F3 30%, #21CBF3 90%)',
-    color: '#fff',
-    padding: theme.spacing(1, 3),
-    borderRadius: '10px',
-    textTransform: 'none',
-    fontWeight: 500,
-    letterSpacing: '0.05em',
-    transition: 'all 0.3s ease',
-    '&:hover': {
-      background: theme.palette.type === 'dark'
-        ? 'linear-gradient(45deg, #FF8C00 30%, #FF0080 90%)'
-        : 'linear-gradient(45deg, #21CBF3 30%, #2196F3 90%)',
-      transform: 'scale(1.05)',
-    },
-  },
-  quickActions: {
-    position: 'fixed',
-    bottom: theme.spacing(4),
-    right: theme.spacing(4),
-    display: 'flex',
-    flexDirection: 'column',
-    gap: theme.spacing(2),
-  },
-  actionButton: {
-    background: theme.palette.type === 'dark'
-      ? 'rgba(18, 18, 18, 0.8)'
-      : 'rgba(255, 255, 255, 0.8)',
+  statsCard: {
+    background: 'rgba(255, 255, 255, 0.1)',
     backdropFilter: 'blur(10px)',
-    border: theme.palette.type === 'dark'
-      ? '1px solid rgba(81, 81, 81, 0.3)'
-      : '1px solid rgba(255, 255, 255, 0.3)',
-    color: theme.palette.type === 'dark' ? '#fff' : theme.palette.primary.dark,
-    '&:hover': {
-      background: theme.palette.type === 'dark'
-        ? 'rgba(255, 0, 128, 0.2)'
-        : 'rgba(33, 150, 243, 0.2)',
-    },
-  },
-  stats: {
-    display: 'flex',
-    justifyContent: 'center',
-    gap: theme.spacing(4),
-    marginBottom: theme.spacing(4),
-  },
-  statItem: {
-    textAlign: 'center',
+    borderRadius: '15px',
+    padding: theme.spacing(3),
+    marginBottom: theme.spacing(3),
   },
   statValue: {
     fontSize: '2rem',
-    fontWeight: 700,
-    color: theme.palette.primary.main,
-    textShadow: theme.palette.type === 'dark'
-      ? '0 0 10px rgba(255, 0, 128, 0.5)'
-      : '0 0 10px rgba(33, 150, 243, 0.5)',
+    fontWeight: 'bold',
+    color: '#2196F3',
+    textShadow: '0 0 10px rgba(33, 150, 243, 0.3)',
   },
   statLabel: {
-    color: theme.palette.type === 'dark' ? 'rgba(255, 255, 255, 0.7)' : 'rgba(0, 0, 0, 0.7)',
-    fontSize: '0.875rem',
+    color: 'rgba(255, 255, 255, 0.7)',
+    fontSize: '1rem',
+  },
+  tableContainer: {
+    background: 'rgba(255, 255, 255, 0.1)',
+    backdropFilter: 'blur(10px)',
+    borderRadius: '15px',
+    marginTop: theme.spacing(3),
+  },
+  tableCell: {
+    color: 'rgba(255, 255, 255, 0.7)',
+    borderBottom: '1px solid rgba(255, 255, 255, 0.1)',
+  },
+  tableHeader: {
+    color: '#ffffff',
+    fontWeight: 'bold',
+    borderBottom: '2px solid rgba(33, 150, 243, 0.5)',
   },
 }));
 
 const Dashboard = () => {
   const classes = useStyles();
   const history = useHistory();
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [stats, setStats] = useState({
+    totalEmployees: 0,
+    presentToday: 0,
+    averageAttendance: 0,
+  });
+  const [attendanceData, setAttendanceData] = useState({
+    labels: [],
+    datasets: [],
+  });
+  const [recentActivity, setRecentActivity] = useState([]);
 
-  // Add cleanup for any async operations
   useEffect(() => {
-    let mounted = true;
+    const fetchDashboardData = async () => {
+      try {
+        // Fetch statistics
+        const statsResponse = await axios.get('http://localhost:5000/api/analytics/stats');
+        setStats(statsResponse.data);
 
-    // Your async operations here
-    const fetchData = async () => {
-      if (mounted) {
-        setLoading(true);
-        try {
-          // Your data fetching logic here
-        } catch (error) {
-          console.error('Error fetching data:', error);
-        } finally {
-          if (mounted) {
-            setLoading(false);
-          }
-        }
+        // Fetch attendance trend data
+        const trendResponse = await axios.get('http://localhost:5000/api/analytics/attendance-trend');
+        setAttendanceData({
+          labels: trendResponse.data.dates,
+          datasets: [{
+            label: 'Daily Attendance',
+            data: trendResponse.data.counts,
+            fill: false,
+            borderColor: '#2196F3',
+            tension: 0.4,
+          }],
+        });
+
+        // Fetch recent activity
+        const activityResponse = await axios.get('http://localhost:5000/api/analytics/recent-activity');
+        setRecentActivity(activityResponse.data);
+
+        setLoading(false);
+      } catch (error) {
+        console.error('Error fetching dashboard data:', error);
+        setLoading(false);
       }
     };
 
-    fetchData();
-
-    return () => {
-      mounted = false;
-    };
+    fetchDashboardData();
   }, []);
 
-  const stats = [
-    { value: '157', label: 'Total Employees' },
-    { value: '89%', label: 'Attendance Rate' },
-    { value: '45', label: 'Present Today' },
-  ];
-
-  const features = [
-    {
-      title: 'Face Recognition',
-      description: 'Mark attendance using AI-powered facial recognition',
-      icon: <FaceIcon className={classes.icon} />,
-      path: '/face-recognition',
-    },
-    {
-      title: 'QR Code Scanner',
-      description: 'Quick and secure QR-based attendance',
-      icon: <QrCodeIcon className={classes.icon} />,
-      path: '/qr-scanner',
-    },
-    {
-      title: 'Register Employee',
-      description: 'Add new employees with biometric data',
-      icon: <PersonAddIcon className={classes.icon} />,
-      path: '/register',
-    },
-    {
-      title: 'Location Tracking',
-      description: 'GPS-verified attendance system',
-      icon: <LocationIcon className={classes.icon} />,
-      path: '/face-recognition',
-    },
-    {
-      title: 'Analytics',
-      description: 'Detailed attendance reports and insights',
-      icon: <TimelineIcon className={classes.icon} />,
-      path: '/analytics',
-    },
-    {
-      title: 'Team Management',
-      description: 'Manage departments and teams',
-      icon: <GroupIcon className={classes.icon} />,
-      path: '/teams',
-    },
-  ];
-
-  const handleFeatureClick = (path) => {
-    setLoading(true);
-    setTimeout(() => {
-      history.push(path);
-      setLoading(false);
-    }, 500);
+  const navigateTo = (path) => {
+    history.push(path);
   };
 
+  if (loading) {
+    return (
+      <Box display="flex" justifyContent="center" alignItems="center" minHeight="100vh">
+        <CircularProgress />
+      </Box>
+    );
+  }
+
   return (
-    <Box className={classes.root}>
-      <Container className={classes.container}>
-        <Paper className={classes.paper} elevation={0}>
-          <Typography variant="h4" className={classes.welcomeTitle}>
-            Welcome to Biometric Attendance System
-          </Typography>
-          <Typography variant="subtitle1" className={classes.subtitle}>
-            Next-generation attendance management powered by AI
-          </Typography>
+    <motion.div
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      transition={{ duration: 0.5 }}
+      className={classes.root}
+    >
+      <Container maxWidth="lg" className={classes.container}>
+        <Grid container spacing={4}>
+          {/* Welcome Section */}
+          <Grid item xs={12}>
+            <Paper className={classes.paper}>
+              <Typography variant="h4" className={classes.welcomeTitle}>
+                Biometric Attendance Dashboard
+              </Typography>
+              <Typography variant="subtitle1" className={classes.subtitle}>
+                Monitor your workforce attendance in real-time
+              </Typography>
+            </Paper>
+          </Grid>
 
-          <Box className={classes.stats}>
-            {stats.map((stat, index) => (
-              <motion.div
-                key={index}
-                className={classes.statItem}
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: index * 0.1 }}
-              >
-                <Typography className={classes.statValue}>{stat.value}</Typography>
-                <Typography className={classes.statLabel}>{stat.label}</Typography>
-              </motion.div>
-            ))}
-          </Box>
+          {/* Statistics Cards */}
+          <Grid item xs={12} md={4}>
+            <motion.div whileHover={{ scale: 1.02 }}>
+              <Card className={classes.statsCard}>
+                <CardContent>
+                  <PeopleIcon className={classes.icon} />
+                  <Typography className={classes.statValue}>{stats.totalEmployees}</Typography>
+                  <Typography className={classes.statLabel}>Total Employees</Typography>
+                </CardContent>
+              </Card>
+            </motion.div>
+          </Grid>
 
-          <Grid container spacing={3}>
-            {features.map((feature, index) => (
-              <Grid item xs={12} sm={6} md={4} key={index}>
-                <motion.div
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: index * 0.1 }}
-                >
-                  <Card 
-                    className={classes.card}
-                    onClick={() => handleFeatureClick(feature.path)}
-                  >
+          <Grid item xs={12} md={4}>
+            <motion.div whileHover={{ scale: 1.02 }}>
+              <Card className={classes.statsCard}>
+                <CardContent>
+                  <TrendingUpIcon className={classes.icon} />
+                  <Typography className={classes.statValue}>{stats.presentToday}</Typography>
+                  <Typography className={classes.statLabel}>Present Today</Typography>
+                </CardContent>
+              </Card>
+            </motion.div>
+          </Grid>
+
+          <Grid item xs={12} md={4}>
+            <motion.div whileHover={{ scale: 1.02 }}>
+              <Card className={classes.statsCard}>
+                <CardContent>
+                  <TimelineIcon className={classes.icon} />
+                  <Typography className={classes.statValue}>{stats.averageAttendance}%</Typography>
+                  <Typography className={classes.statLabel}>Average Attendance</Typography>
+                </CardContent>
+              </Card>
+            </motion.div>
+          </Grid>
+
+          {/* Attendance Chart */}
+          <Grid item xs={12}>
+            <Paper className={classes.paper}>
+              <Typography variant="h6" className={classes.subtitle}>
+                Attendance Trend
+              </Typography>
+              <Line data={attendanceData} options={{
+                responsive: true,
+                scales: {
+                  y: {
+                    beginAtZero: true,
+                    grid: {
+                      color: 'rgba(255, 255, 255, 0.1)',
+                    },
+                    ticks: {
+                      color: 'rgba(255, 255, 255, 0.7)',
+                    }
+                  },
+                  x: {
+                    grid: {
+                      color: 'rgba(255, 255, 255, 0.1)',
+                    },
+                    ticks: {
+                      color: 'rgba(255, 255, 255, 0.7)',
+                    }
+                  }
+                },
+                plugins: {
+                  legend: {
+                    labels: {
+                      color: 'rgba(255, 255, 255, 0.7)',
+                    }
+                  }
+                }
+              }} />
+            </Paper>
+          </Grid>
+
+          {/* Recent Activity Table */}
+          <Grid item xs={12}>
+            <TableContainer className={classes.tableContainer}>
+              <Typography variant="h6" className={classes.subtitle} style={{ padding: '16px' }}>
+                Recent Activity
+              </Typography>
+              <Table>
+                <TableHead>
+                  <TableRow>
+                    <TableCell className={classes.tableHeader}>Employee</TableCell>
+                    <TableCell className={classes.tableHeader}>Action</TableCell>
+                    <TableCell className={classes.tableHeader}>Time</TableCell>
+                    <TableCell className={classes.tableHeader}>Location</TableCell>
+                  </TableRow>
+                </TableHead>
+                <TableBody>
+                  {recentActivity.map((activity, index) => (
+                    <TableRow key={index}>
+                      <TableCell className={classes.tableCell}>{activity.employee}</TableCell>
+                      <TableCell className={classes.tableCell}>{activity.action}</TableCell>
+                      <TableCell className={classes.tableCell}>{activity.time}</TableCell>
+                      <TableCell className={classes.tableCell}>{activity.location}</TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </TableContainer>
+          </Grid>
+
+          {/* Quick Actions */}
+          <Grid item xs={12}>
+            <Grid container spacing={3}>
+              <Grid item xs={12} sm={6} md={3}>
+                <motion.div whileHover={{ scale: 1.05 }}>
+                  <Card className={classes.card} onClick={() => navigateTo('/face-recognition')}>
                     <CardContent className={classes.cardContent}>
-                      {feature.icon}
-                      <Typography variant="h6" className={classes.featureTitle}>
-                        {feature.title}
-                      </Typography>
-                      <Typography variant="body2" className={classes.description}>
-                        {feature.description}
-                      </Typography>
-                      <Button
-                        variant="contained"
-                        className={classes.button}
-                        disabled={loading}
-                      >
-                        {loading ? <CircularProgress size={24} color="inherit" /> : 'Launch'}
-                      </Button>
+                      <FaceIcon className={classes.icon} />
+                      <Typography>Face Recognition</Typography>
                     </CardContent>
                   </Card>
                 </motion.div>
               </Grid>
-            ))}
+              <Grid item xs={12} sm={6} md={3}>
+                <motion.div whileHover={{ scale: 1.05 }}>
+                  <Card className={classes.card} onClick={() => navigateTo('/qr-scanner')}>
+                    <CardContent className={classes.cardContent}>
+                      <QrCodeIcon className={classes.icon} />
+                      <Typography>QR Scanner</Typography>
+                    </CardContent>
+                  </Card>
+                </motion.div>
+              </Grid>
+              <Grid item xs={12} sm={6} md={3}>
+                <motion.div whileHover={{ scale: 1.05 }}>
+                  <Card className={classes.card} onClick={() => navigateTo('/team-management')}>
+                    <CardContent className={classes.cardContent}>
+                      <GroupIcon className={classes.icon} />
+                      <Typography>Team Management</Typography>
+                    </CardContent>
+                  </Card>
+                </motion.div>
+              </Grid>
+              <Grid item xs={12} sm={6} md={3}>
+                <motion.div whileHover={{ scale: 1.05 }}>
+                  <Card className={classes.card} onClick={() => navigateTo('/registration')}>
+                    <CardContent className={classes.cardContent}>
+                      <PersonAddIcon className={classes.icon} />
+                      <Typography>New Registration</Typography>
+                    </CardContent>
+                  </Card>
+                </motion.div>
+              </Grid>
+            </Grid>
           </Grid>
-        </Paper>
+        </Grid>
       </Container>
-
-      <Box className={classes.quickActions}>
-        <Tooltip title="Settings" placement="left" TransitionComponent={Zoom}>
-          <IconButton className={classes.actionButton}>
-            <SettingsIcon />
-          </IconButton>
-        </Tooltip>
-        <Tooltip title="Help & Support" placement="left" TransitionComponent={Zoom}>
-          <IconButton className={classes.actionButton}>
-            <HelpIcon />
-          </IconButton>
-        </Tooltip>
-      </Box>
-    </Box>
+    </motion.div>
   );
 };
 
