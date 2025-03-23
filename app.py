@@ -3,6 +3,7 @@ from flask_cors import CORS
 import os
 from dotenv import load_dotenv
 from pymongo import MongoClient
+from pymongo.server_api import ServerApi
 import cv2
 import numpy as np
 from datetime import datetime
@@ -15,31 +16,31 @@ from PIL import Image
 import io
 from sklearn.metrics.pairwise import cosine_similarity
 import certifi
+import ssl
 
 load_dotenv()
 
 app = Flask(__name__)
 CORS(app)
 
-# MongoDB Atlas connection with SSL certificate
+# MongoDB Atlas connection
 try:
     client = MongoClient(
-        Config.MONGODB_URI,
+        "mongodb+srv://khushichandak2005:khac2005@biometricattendence.jolt8.mongodb.net/?retryWrites=true&w=majority",
         tls=True,
-        tlsCAFile=certifi.where(),
-        serverSelectionTimeoutMS=5000
+        tlsCAFile=certifi.where()
     )
     # Test the connection
     client.admin.command('ping')
     print("Successfully connected to MongoDB Atlas!")
-    db = client[Config.DATABASE_NAME]
+    db = client.attendance_db
 except Exception as e:
     print(f"Error connecting to MongoDB Atlas: {e}")
     raise
 
 # Collections
-users_collection = db[Config.USERS_COLLECTION]
-attendance_collection = db[Config.ATTENDANCE_COLLECTION]
+users_collection = db.users
+attendance_collection = db.attendance
 
 # Initialize MediaPipe Face Mesh
 mp_face_mesh = mp.solutions.face_mesh
