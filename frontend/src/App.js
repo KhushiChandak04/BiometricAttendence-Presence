@@ -1,7 +1,6 @@
 import React from 'react';
-import { BrowserRouter as Router, Route, Switch } from 'react-router-dom';
-import { Box } from '@material-ui/core';
-import CssBaseline from '@material-ui/core/CssBaseline';
+import { BrowserRouter as Router, Route, Routes } from 'react-router-dom';
+import { Box, CssBaseline } from '@mui/material';
 import Navbar from './components/Navbar';
 import Dashboard from './components/Dashboard';
 import FaceRecognition from './components/FaceRecognition';
@@ -16,12 +15,12 @@ function App() {
       <Router>
         <Box>
           <Navbar />
-          <Switch>
-            <Route exact path="/" component={Dashboard} />
-            <Route path="/face-recognition" component={FaceRecognition} />
-            <Route path="/qr-code" component={QRScanner} />
-            <Route path="/register" component={Registration} />
-          </Switch>
+          <Routes>
+            <Route exact path="/" element={<Dashboard />} />
+            <Route path="/face-recognition" element={<FaceRecognition />} />
+            <Route path="/qr-scanner" element={<QRScanner />} />
+            <Route path="/register" element={<Registration />} />
+          </Routes>
         </Box>
       </Router>
     </ThemeContextProvider>

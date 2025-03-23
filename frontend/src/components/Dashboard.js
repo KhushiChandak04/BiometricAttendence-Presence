@@ -4,25 +4,24 @@ import {
   Grid, 
   Paper, 
   Typography, 
-  makeStyles, 
   Card,
   CardContent,
   useTheme,
   IconButton,
-} from '@material-ui/core';
+} from '@mui/material';
 import { 
   Face as FaceIcon,
-  CropFree as QrCodeIcon,
+  QrCode as QrCodeIcon,
   PersonAdd as PersonAddIcon,
   Assessment as AssessmentIcon,
   Brightness4 as DarkModeIcon,
   Brightness7 as LightModeIcon,
-} from '@material-ui/icons';
-import { useHistory } from 'react-router-dom';
+} from '@mui/icons-material';
+import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ThemeContext } from '../contexts/ThemeContext';
 
-const useStyles = makeStyles((theme) => ({
+const Root = styled('div')(({ theme }) => ({
   root: {
     flexGrow: 1,
     minHeight: '100vh',
@@ -203,12 +202,12 @@ const useStyles = makeStyles((theme) => ({
 
 const Dashboard = () => {
   const classes = useStyles();
-  const history = useHistory();
+  const navigate = useNavigate();
   const theme = useTheme();
   const { toggleTheme } = useContext(ThemeContext);
 
   const navigateTo = (path) => {
-    history.push(path);
+    navigate(path);
   };
 
   return (

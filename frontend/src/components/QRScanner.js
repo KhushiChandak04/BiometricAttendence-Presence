@@ -1,37 +1,38 @@
 import React, { useState } from 'react';
-import QrReader from 'react-qr-reader';
-import { Container, Paper, Typography, CircularProgress } from '@material-ui/core';
-import { makeStyles } from '@material-ui/core/styles';
+import QrReader from 'react-qr-scanner';
+import { Container, Paper, Typography, CircularProgress } from '@mui/material';
+import { styled } from '@mui/material/styles';
 import axios from 'axios';
 
-const useStyles = makeStyles((theme) => ({
-  root: {
-    marginTop: theme.spacing(4),
-    display: 'flex',
-    flexDirection: 'column',
-    alignItems: 'center',
-  },
-  paper: {
-    padding: theme.spacing(3),
-    display: 'flex',
-    flexDirection: 'column',
-    alignItems: 'center',
-    width: '100%',
-    maxWidth: '500px',
-  },
-  reader: {
-    width: '100%',
-    maxWidth: '400px',
-    marginTop: theme.spacing(2),
-    marginBottom: theme.spacing(2),
-  },
-  message: {
-    marginTop: theme.spacing(2),
-  },
+const Root = styled('div')(({ theme }) => ({
+  marginTop: theme.spacing(4),
+  display: 'flex',
+  flexDirection: 'column',
+  alignItems: 'center',
+}));
+
+const StyledPaper = styled(Paper)(({ theme }) => ({
+  padding: theme.spacing(3),
+  display: 'flex',
+  flexDirection: 'column',
+  alignItems: 'center',
+  width: '100%',
+  maxWidth: '500px',
+}));
+
+const ReaderContainer = styled('div')(({ theme }) => ({
+  width: '100%',
+  maxWidth: '400px',
+  marginTop: theme.spacing(2),
+  marginBottom: theme.spacing(2),
+}));
+
+const Message = styled(Typography)(({ theme }) => ({
+  marginTop: theme.spacing(2),
 }));
 
 const QRScanner = () => {
-  const classes = useStyles();
+
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState('');
 
@@ -82,33 +83,34 @@ const QRScanner = () => {
   };
 
   return (
-    <Container maxWidth="sm" className={classes.root}>
-      <Paper elevation={3} className={classes.paper}>
-        <Typography variant="h5" gutterBottom>
-          QR Code Attendance
-        </Typography>
-
-        <div className={classes.reader}>
-          <QrReader
-            delay={300}
-            onError={handleError}
-            onScan={handleScan}
-            facingMode="environment"
-            style={{ width: '100%' }}
-          />
-        </div>
-
-        {loading && <CircularProgress />}
-        
-        {message && (
-          <Typography 
-            className={classes.message}
-            color={message.includes('error') ? 'error' : 'primary'}
-          >
-            {message}
+    <Container maxWidth="sm">
+      <Root>
+        <StyledPaper elevation={3}>
+          <Typography variant="h5" gutterBottom>
+            QR Code Attendance
           </Typography>
-        )}
-      </Paper>
+
+          <ReaderContainer>
+            <QrReader
+              delay={300}
+              onError={handleError}
+              onScan={handleScan}
+              facingMode="environment"
+              style={{ width: '100%' }}
+            />
+          </ReaderContainer>
+
+          {loading && <CircularProgress />}
+          
+          {message && (
+            <Message 
+              color={message.includes('error') ? 'error' : 'primary'}
+            >
+              {message}
+            </Message>
+          )}
+        </StyledPaper>
+      </Root>
     </Container>
   );
 };

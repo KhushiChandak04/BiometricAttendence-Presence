@@ -1,10 +1,10 @@
 import React, { useState, useRef, useEffect } from 'react';
 import Webcam from 'react-webcam';
-import { Button, Container, Paper, Typography, CircularProgress, Box } from '@material-ui/core';
-import { makeStyles } from '@material-ui/core/styles';
+import { Button, Container, Paper, Typography, CircularProgress, Box } from '@mui/material';
+import { styled } from '@mui/material/styles';
 import axios from 'axios';
 
-const useStyles = makeStyles((theme) => ({
+const Root = styled('div')(({ theme }) => ({
   root: {
     minHeight: '100vh',
     marginTop: 0,
@@ -246,18 +246,17 @@ const FaceRecognition = () => {
   };
 
   return (
-    <Container maxWidth="sm" className={classes.root}>
-      <Paper elevation={3} className={classes.paper}>
+    <StyledRoot>
+      <StyledPaper elevation={3}>
         <Typography variant="h5" gutterBottom className={classes.title}>
           Face Recognition Attendance
         </Typography>
         
         <div className={classes.webcamContainer}>
-          <Webcam
+          <StyledWebcam
             audio={false}
             ref={webcamRef}
             screenshotFormat="image/jpeg"
-            className={classes.webcam}
             width={400}
             height={300}
           />

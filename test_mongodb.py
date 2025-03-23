@@ -1,54 +1,45 @@
-from pymongo import MongoClient
+from pymongo import MongoClient, ssl_support
 from pymongo.server_api import ServerApi
 from dotenv import load_dotenv
 import os
 import certifi
+import ssl
+import urllib.parse
 
 def test_mongodb_connection():
     # Load environment variables
     load_dotenv()
     
-    # Get MongoDB URI from environment variables
-    mongodb_uri = os.getenv('MONGODB_URI')
-    database_name = os.getenv('DATABASE_NAME', 'attendance_db')
-    
     try:
-        # Create MongoDB client with SSL/TLS settings
+        username = urllib.parse.quote_plus("khushichandak2005")
+        password = urllib.parse.quote_plus("khac2005")
+        
+        # Create connection URL with escaped username and password
+        uri = f"mongodb+srv://{username}:{password}@biometricattendence.jolt8.mongodb.net/attendance_db?retryWrites=true&w=majority"
+        
         print("\nAttempting to connect to MongoDB Atlas...")
         client = MongoClient(
-            mongodb_uri,
+            uri,
             tls=True,
             tlsCAFile=certifi.where(),
-            server_api=ServerApi('1'),
-            serverSelectionTimeoutMS=5000
+            connectTimeoutMS=30000,
+            socketTimeoutMS=30000,
+            serverSelectionTimeoutMS=30000,
+            connect=True
         )
         
-        # Test connection by accessing server info
-        server_info = client.server_info()
+        # Force a connection attempt
+        print("Testing connection...")
+        client.admin.command('ismaster')
         print("✅ Successfully connected to MongoDB Atlas!")
         
-        # Test database access
-        db = client[database_name]
-        print(f"✅ Successfully accessed database: {database_name}")
+        # Access the database
+        db = client.attendance_db
+        print("✅ Successfully accessed database: attendance_db")
         
-        # Test collections from memory
-        users_collection = db['users']
-        attendance_collection = db['attendance']
-        
-        # Test insert operation
-        test_doc = {"test": "connection", "temporary": True}
-        insert_result = users_collection.insert_one(test_doc)
-        print("✅ Successfully inserted test document!")
-        
-        # Clean up test document
-        users_collection.delete_one({"_id": insert_result.inserted_id})
-        print("✅ Successfully cleaned up test document!")
-        
-        # Print database details
-        print("\nDatabase Details:")
-        print(f"Database name: {database_name}")
-        print(f"Available collections: {', '.join(db.list_collection_names())}")
-        print(f"MongoDB server version: {server_info.get('version', 'unknown')}")
+        # List collections
+        collections = db.list_collection_names()
+        print(f"✅ Available collections: {', '.join(collections)}")
         
         return True
         
@@ -59,6 +50,9 @@ def test_mongodb_connection():
         print("2. Verify your network connection")
         print("3. Make sure your IP address is whitelisted in MongoDB Atlas")
         print("4. Verify your database credentials")
+        print("\nDetailed error information:")
+        print(f"Error type: {type(e).__name__}")
+        print(f"Error message: {str(e)}")
         return False
     finally:
         if 'client' in locals():
