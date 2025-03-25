@@ -1,75 +1,57 @@
 import React, { useState } from 'react';
-import QrReader from 'react-qr-reader';
-import { Container, Paper, Typography, CircularProgress } from '@material-ui/core';
-import { makeStyles } from '@material-ui/core/styles';
+import { Container, Paper, Typography, Box, CircularProgress, Alert } from '@mui/material';
+import { styled } from '@mui/material/styles';
+import { QrCode2 as QrCodeIcon } from '@mui/icons-material';
+import QrScanner from 'react-qr-scanner';
 import axios from 'axios';
 
-const useStyles = makeStyles((theme) => ({
-  root: {
-    marginTop: theme.spacing(4),
-    display: 'flex',
-    flexDirection: 'column',
-    alignItems: 'center',
-  },
-  paper: {
-    padding: theme.spacing(3),
-    display: 'flex',
-    flexDirection: 'column',
-    alignItems: 'center',
+const StyledPaper = styled(Paper)(({ theme }) => ({
+  padding: theme.spacing(3),
+  display: 'flex',
+  flexDirection: 'column',
+  alignItems: 'center',
+  background: 'rgba(255, 255, 255, 0.1)',
+  backdropFilter: 'blur(10px)',
+  borderRadius: '15px',
+  border: '1px solid rgba(255, 255, 255, 0.1)',
+  boxShadow: '0 8px 32px 0 rgba(31, 38, 135, 0.37)',
+}));
+
+const QRContainer = styled('div')(({ theme }) => ({
+  width: '100%',
+  maxWidth: '400px',
+  margin: theme.spacing(2, 0),
+  '& video': {
     width: '100%',
-    maxWidth: '500px',
-  },
-  reader: {
-    width: '100%',
-    maxWidth: '400px',
-    marginTop: theme.spacing(2),
-    marginBottom: theme.spacing(2),
-  },
-  message: {
-    marginTop: theme.spacing(2),
-  },
+    borderRadius: '10px',
+    border: '2px solid rgba(33, 150, 243, 0.5)',
+  }
 }));
 
 const QRScanner = () => {
-  const classes = useStyles();
   const [loading, setLoading] = useState(false);
-  const [message, setMessage] = useState('');
+  const [success, setSuccess] = useState(false);
+  const [error, setError] = useState('');
 
-  const getCurrentLocation = () => {
-    return new Promise((resolve, reject) => {
-      if (!navigator.geolocation) {
-        reject('Geolocation is not supported');
-      }
-      navigator.geolocation.getCurrentPosition(
-        (position) => {
-          resolve({
-            latitude: position.coords.latitude,
-            longitude: position.coords.longitude,
-          });
-        },
-        (error) => {
-          reject(error.message);
-        }
-      );
-    });
-  };
+  const handleScan = async (result) => {
+    if (result && !loading) {
+      setLoading(true);
+      setError('');
+      setSuccess(false);
 
-  const handleScan = async (data) => {
-    if (data && !loading) {
       try {
-        setLoading(true);
-        setMessage('Processing QR code...');
-
-        const location = await getCurrentLocation();
-
         const response = await axios.post('http://localhost:5000/api/attendance/qr', {
-          qr_data: data,
-          location: location,
+          qr_data: result.text
         });
 
-        setMessage(response.data.message);
-      } catch (error) {
-        setMessage(error.response?.data?.error || 'An error occurred');
+        if (response.data.success) {
+          setSuccess(true);
+          setTimeout(() => setSuccess(false), 3000);
+        } else {
+          throw new Error(response.data.message || 'Invalid QR code');
+        }
+      } catch (err) {
+        setError(err.message || 'Failed to process QR code');
       } finally {
         setLoading(false);
       }
@@ -77,38 +59,47 @@ const QRScanner = () => {
   };
 
   const handleError = (err) => {
-    console.error(err);
-    setMessage('Error accessing camera');
+    setError('Failed to access camera: ' + err.message);
   };
 
   return (
-    <Container maxWidth="sm" className={classes.root}>
-      <Paper elevation={3} className={classes.paper}>
-        <Typography variant="h5" gutterBottom>
-          QR Code Attendance
+    <Container component="main" maxWidth="sm" sx={{ mt: 4 }}>
+      <StyledPaper elevation={3}>
+        <QrCodeIcon sx={{ fontSize: 40, mb: 2, color: '#2196F3' }} />
+        <Typography component="h1" variant="h5" gutterBottom>
+          QR Code Scanner
         </Typography>
 
-        <div className={classes.reader}>
-          <QrReader
-            delay={300}
+        {success && (
+          <Alert severity="success" sx={{ width: '100%', mb: 2 }}>
+            Attendance marked successfully!
+          </Alert>
+        )}
+
+        {error && (
+          <Alert severity="error" sx={{ width: '100%', mb: 2 }}>
+            {error}
+          </Alert>
+        )}
+
+        <QRContainer>
+          <QrScanner
             onError={handleError}
             onScan={handleScan}
-            facingMode="environment"
+            constraints={{
+              video: { facingMode: 'environment' }
+            }}
             style={{ width: '100%' }}
           />
-        </div>
+        </QRContainer>
 
-        {loading && <CircularProgress />}
-        
-        {message && (
-          <Typography 
-            className={classes.message}
-            color={message.includes('error') ? 'error' : 'primary'}
-          >
-            {message}
-          </Typography>
+        {loading && (
+          <Box sx={{ mt: 2, display: 'flex', alignItems: 'center', gap: 1 }}>
+            <CircularProgress size={20} />
+            <Typography>Processing...</Typography>
+          </Box>
         )}
-      </Paper>
+      </StyledPaper>
     </Container>
   );
 };

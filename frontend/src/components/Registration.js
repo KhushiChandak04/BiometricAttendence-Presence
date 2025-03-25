@@ -1,223 +1,165 @@
-import React from 'react';
-import {
-  Container,
-  Paper,
-  Typography,
-  TextField,
-  Button,
-  makeStyles,
-  Grid
-} from '@material-ui/core';
-import { PersonAdd } from '@material-ui/icons';
-import Webcam from 'react-webcam';
+import React, { useState } from 'react';
+import { Container, Paper, Typography, TextField, Button, Box, CircularProgress, Alert } from '@mui/material';
+import { styled } from '@mui/material/styles';
 import axios from 'axios';
 
-const useStyles = makeStyles((theme) => ({
-  root: {
-    marginTop: theme.spacing(4),
-    display: 'flex',
-    flexDirection: 'column',
-    alignItems: 'center',
-    minHeight: '100vh',
-    background: theme.palette.type === 'dark' 
-      ? 'linear-gradient(45deg, #000428 30%, #004e92 90%)'
-      : 'linear-gradient(45deg, #2196F3 30%, #21CBF3 90%)',
-    transition: 'background 0.3s ease-in-out',
-  },
-  paper: {
-    padding: theme.spacing(3),
-    display: 'flex',
-    flexDirection: 'column',
-    alignItems: 'center',
-    width: '100%',
-    maxWidth: '500px',
-    background: theme.palette.type === 'dark' 
-      ? 'rgba(18, 18, 18, 0.8)'
-      : 'rgba(255, 255, 255, 0.9)',
-    backdropFilter: 'blur(10px)',
-    border: theme.palette.type === 'dark'
-      ? '1px solid rgba(81, 81, 81, 0.3)'
-      : '1px solid rgba(255, 255, 255, 0.3)',
-    borderRadius: '15px',
-    boxShadow: theme.palette.type === 'dark'
-      ? '0 8px 32px 0 rgba(0, 0, 0, 0.37)'
-      : '0 8px 32px 0 rgba(31, 38, 135, 0.37)',
-  },
-  form: {
-    width: '100%',
-    marginTop: theme.spacing(1),
-  },
-  webcam: {
-    marginTop: theme.spacing(2),
-    marginBottom: theme.spacing(2),
-    width: '100%',
-    borderRadius: '10px',
-    border: `2px solid ${theme.palette.primary.main}`,
-    boxShadow: `0 0 20px ${theme.palette.primary.main}40`,
-  },
-  button: {
-    margin: theme.spacing(2, 0),
-    background: theme.palette.type === 'dark'
-      ? 'linear-gradient(45deg, #FF0080 30%, #FF8C00 90%)'
-      : 'linear-gradient(45deg, #2196F3 30%, #21CBF3 90%)',
-    color: '#fff',
-    textTransform: 'none',
-    fontSize: '1.1rem',
-    padding: '12px',
-    borderRadius: '10px',
-    '&:hover': {
-      background: theme.palette.type === 'dark'
-        ? 'linear-gradient(45deg, #FF8C00 30%, #FF0080 90%)'
-        : 'linear-gradient(45deg, #21CBF3 30%, #2196F3 90%)',
-      boxShadow: '0 3px 15px 2px rgba(255, 105, 135, .3)',
-    },
-  },
-  textField: {
-    marginBottom: theme.spacing(2),
-    '& .MuiOutlinedInput-root': {
-      borderRadius: '10px',
-      background: theme.palette.type === 'dark'
-        ? 'rgba(255, 255, 255, 0.05)'
-        : 'rgba(0, 0, 0, 0.05)',
-      '&:hover': {
-        '& .MuiOutlinedInput-notchedOutline': {
-          borderColor: theme.palette.primary.main,
-        },
-      },
-    },
-    '& .MuiOutlinedInput-notchedOutline': {
-      borderWidth: '2px',
-      borderColor: theme.palette.type === 'dark'
-        ? 'rgba(255, 255, 255, 0.2)'
-        : 'rgba(0, 0, 0, 0.2)',
-    },
-  },
-  title: {
-    color: theme.palette.primary.main,
-    fontWeight: 600,
-    textTransform: 'uppercase',
-    letterSpacing: '2px',
-    marginBottom: theme.spacing(3),
-    textShadow: theme.palette.type === 'dark'
-      ? '0 0 10px rgba(255, 0, 128, 0.5)'
-      : '0 0 10px rgba(33, 150, 243, 0.5)',
-  },
+const StyledPaper = styled(Paper)(({ theme }) => ({
+  padding: theme.spacing(3),
+  display: 'flex',
+  flexDirection: 'column',
+  alignItems: 'center',
+  background: 'rgba(255, 255, 255, 0.1)',
+  backdropFilter: 'blur(10px)',
+  borderRadius: '15px',
+  border: '1px solid rgba(255, 255, 255, 0.1)',
+  boxShadow: '0 8px 32px 0 rgba(31, 38, 135, 0.37)',
+}));
+
+const StyledButton = styled(Button)(({ theme }) => ({
+  margin: theme.spacing(2, 0),
+  background: 'linear-gradient(45deg, #2196F3 30%, #21CBF3 90%)',
+  borderRadius: '25px',
+  border: 0,
+  color: 'white',
+  height: 48,
+  padding: '0 30px',
+  boxShadow: '0 3px 5px 2px rgba(33, 203, 243, .3)',
+  '&:hover': {
+    background: 'linear-gradient(45deg, #21CBF3 30%, #2196F3 90%)',
+    transform: 'scale(1.02)',
+  }
 }));
 
 const Registration = () => {
-  const classes = useStyles();
-  const webcamRef = React.createRef(null);
-  const [loading, setLoading] = React.useState(false);
-  const [message, setMessage] = React.useState('');
-  const [formData, setFormData] = React.useState({
+  const [formData, setFormData] = useState({
     name: '',
-    employee_id: '',
+    employeeId: '',
+    email: '',
+    department: '',
+    position: ''
   });
+  const [loading, setLoading] = useState(false);
+  const [success, setSuccess] = useState(false);
+  const [error, setError] = useState('');
 
-  const handleInputChange = (e) => {
+  const handleChange = (e) => {
     setFormData({
       ...formData,
-      [e.target.name]: e.target.value,
+      [e.target.name]: e.target.value
     });
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!formData.name || !formData.employee_id) {
-      setMessage('Please fill in all fields');
-      return;
-    }
+    setLoading(true);
+    setError('');
+    setSuccess(false);
 
     try {
-      setLoading(true);
-      setMessage('');
-
-      const imageSrc = webcamRef.current.getScreenshot();
-      if (!imageSrc) {
-        setMessage('Failed to capture image');
-        return;
+      const response = await axios.post('http://localhost:5000/api/register', formData);
+      
+      if (response.data.success) {
+        setSuccess(true);
+        setFormData({
+          name: '',
+          employeeId: '',
+          email: '',
+          department: '',
+          position: ''
+        });
+      } else {
+        throw new Error(response.data.message || 'Registration failed');
       }
-
-      const response = await axios.post('http://localhost:5000/api/register', {
-        ...formData,
-        face_image: imageSrc,
-      });
-
-      setMessage(response.data.message);
-      setFormData({ name: '', employee_id: '' });
-    } catch (error) {
-      setMessage(error.response?.data?.error || 'An error occurred');
+    } catch (err) {
+      setError(err.message || 'Failed to register employee');
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <Grid container className={classes.root}>
-      <Container maxWidth="sm">
-        <Paper elevation={3} className={classes.paper}>
-          <Typography variant="h4" className={classes.title}>
-            Employee Registration
-          </Typography>
+    <Container component="main" maxWidth="sm" sx={{ mt: 4 }}>
+      <StyledPaper elevation={3}>
+        <Typography component="h1" variant="h5" gutterBottom>
+          Employee Registration
+        </Typography>
 
-          <form className={classes.form} onSubmit={handleSubmit}>
-            <TextField
-              className={classes.textField}
-              variant="outlined"
-              required
-              fullWidth
-              label="Full Name"
-              name="name"
-              value={formData.name}
-              onChange={handleInputChange}
-            />
+        {success && (
+          <Alert severity="success" sx={{ width: '100%', mb: 2 }}>
+            Employee registered successfully!
+          </Alert>
+        )}
 
-            <TextField
-              className={classes.textField}
-              variant="outlined"
-              required
-              fullWidth
-              label="Employee ID"
-              name="employee_id"
-              value={formData.employee_id}
-              onChange={handleInputChange}
-            />
+        {error && (
+          <Alert severity="error" sx={{ width: '100%', mb: 2 }}>
+            {error}
+          </Alert>
+        )}
 
-            <Webcam
-              audio={false}
-              ref={webcamRef}
-              screenshotFormat="image/jpeg"
-              className={classes.webcam}
-            />
+        <Box component="form" onSubmit={handleSubmit} sx={{ width: '100%', mt: 1 }}>
+          <TextField
+            margin="normal"
+            required
+            fullWidth
+            id="name"
+            label="Full Name"
+            name="name"
+            value={formData.name}
+            onChange={handleChange}
+          />
+          <TextField
+            margin="normal"
+            required
+            fullWidth
+            id="employeeId"
+            label="Employee ID"
+            name="employeeId"
+            value={formData.employeeId}
+            onChange={handleChange}
+          />
+          <TextField
+            margin="normal"
+            required
+            fullWidth
+            id="email"
+            label="Email Address"
+            name="email"
+            type="email"
+            value={formData.email}
+            onChange={handleChange}
+          />
+          <TextField
+            margin="normal"
+            required
+            fullWidth
+            id="department"
+            label="Department"
+            name="department"
+            value={formData.department}
+            onChange={handleChange}
+          />
+          <TextField
+            margin="normal"
+            required
+            fullWidth
+            id="position"
+            label="Position"
+            name="position"
+            value={formData.position}
+            onChange={handleChange}
+          />
 
-            <Button
-              type="submit"
-              fullWidth
-              variant="contained"
-              className={classes.button}
-              disabled={loading}
-            >
-              {loading ? 'Loading...' : 'Register Employee'}
-            </Button>
-          </form>
-
-          {message && (
-            <Typography 
-              style={{
-                color: message.includes('error') 
-                  ? 'red'
-                  : 'green',
-                marginTop: '10px',
-                textAlign: 'center',
-                fontWeight: 500,
-              }}
-            >
-              {message}
-            </Typography>
-          )}
-        </Paper>
-      </Container>
-    </Grid>
+          <StyledButton
+            type="submit"
+            fullWidth
+            disabled={loading}
+            startIcon={loading && <CircularProgress size={20} color="inherit" />}
+          >
+            {loading ? 'Registering...' : 'Register Employee'}
+          </StyledButton>
+        </Box>
+      </StyledPaper>
+    </Container>
   );
 };
 

@@ -1,139 +1,71 @@
 import React from 'react';
-import { AppBar, Toolbar, Typography, Button, makeStyles } from '@material-ui/core';
-import { Link as RouterLink, useLocation } from 'react-router-dom';
-import { AccountCircle, Dashboard, Face, CropFree, PersonAdd } from '@material-ui/icons';
+import { Link, useLocation } from 'react-router-dom';
+import { AppBar, Toolbar, Typography, Button, Box } from '@mui/material';
+import { styled } from '@mui/material/styles';
+import {
+  Dashboard as DashboardIcon,
+  Face as FaceIcon,
+  QrCode as QrCodeIcon,
+  PersonAdd as PersonAddIcon
+} from '@mui/icons-material';
 
-const useStyles = makeStyles((theme) => ({
-  root: {
-    flexGrow: 1,
-  },
-  appBar: {
-    background: theme.palette.type === 'dark'
-      ? 'rgba(18, 18, 18, 0.8)'
-      : 'rgba(255, 255, 255, 0.8)',
-    backdropFilter: 'blur(10px)',
-    borderBottom: theme.palette.type === 'dark'
-      ? '1px solid rgba(81, 81, 81, 0.3)'
-      : '1px solid rgba(255, 255, 255, 0.3)',
-    boxShadow: theme.palette.type === 'dark'
-      ? '0 4px 30px rgba(0, 0, 0, 0.1)'
-      : '0 4px 30px rgba(33, 150, 243, 0.1)',
-  },
-  toolbar: {
-    display: 'flex',
-    justifyContent: 'space-between',
-    padding: theme.spacing(1, 3),
-  },
-  title: {
-    display: 'flex',
-    alignItems: 'center',
-    color: theme.palette.type === 'dark' ? theme.palette.primary.main : theme.palette.primary.dark,
-    fontWeight: 700,
-    letterSpacing: '0.1em',
-    textTransform: 'uppercase',
-    textShadow: theme.palette.type === 'dark'
-      ? '0 0 10px rgba(255, 0, 128, 0.5)'
-      : '0 0 10px rgba(33, 150, 243, 0.5)',
-    '& svg': {
-      marginRight: theme.spacing(1),
-    },
-  },
-  navButtons: {
-    display: 'flex',
-    gap: theme.spacing(1),
-  },
-  button: {
-    borderRadius: '10px',
-    padding: theme.spacing(1, 2),
-    color: theme.palette.type === 'dark' ? '#fff' : theme.palette.primary.dark,
-    textTransform: 'none',
-    fontSize: '0.9rem',
-    letterSpacing: '0.05em',
-    transition: 'all 0.3s ease',
-    position: 'relative',
-    overflow: 'hidden',
-    '&::before': {
-      content: '""',
-      position: 'absolute',
-      top: 0,
-      left: 0,
-      width: '100%',
-      height: '100%',
-      background: 'linear-gradient(45deg, transparent, rgba(255, 255, 255, 0.1), transparent)',
-      transform: 'translateX(-100%)',
-      transition: 'transform 0.6s ease',
-    },
-    '&:hover': {
-      background: theme.palette.type === 'dark'
-        ? 'rgba(255, 0, 128, 0.1)'
-        : 'rgba(33, 150, 243, 0.1)',
-      '&::before': {
-        transform: 'translateX(100%)',
-      },
-    },
-    '&.active': {
-      background: theme.palette.type === 'dark'
-        ? 'rgba(255, 0, 128, 0.2)'
-        : 'rgba(33, 150, 243, 0.2)',
-      boxShadow: theme.palette.type === 'dark'
-        ? '0 0 10px rgba(255, 0, 128, 0.3)'
-        : '0 0 10px rgba(33, 150, 243, 0.3)',
-    },
-  },
-  icon: {
-    marginRight: theme.spacing(1),
+const StyledAppBar = styled(AppBar)(({ theme }) => ({
+  background: 'rgba(10, 25, 41, 0.7)',
+  backdropFilter: 'blur(20px)',
+  borderBottom: '1px solid rgba(255, 255, 255, 0.1)',
+}));
+
+const StyledButton = styled(Button)(({ theme, isactive }) => ({
+  margin: theme.spacing(0, 1),
+  color: isactive === 'true' ? theme.palette.primary.main : 'inherit',
+  '&:hover': {
+    color: theme.palette.primary.main,
   },
 }));
 
 const Navbar = () => {
-  const classes = useStyles();
   const location = useLocation();
 
-  const isActive = (path) => location.pathname === path;
+  const isActive = (path) => {
+    return location.pathname === path;
+  };
+
+  const navItems = [
+    { path: '/dashboard', label: 'Dashboard', icon: <DashboardIcon /> },
+    { path: '/face-recognition', label: 'Face Recognition', icon: <FaceIcon /> },
+    { path: '/qr-scanner', label: 'QR Scanner', icon: <QrCodeIcon /> },
+    { path: '/registration', label: 'Registration', icon: <PersonAddIcon /> },
+  ];
 
   return (
-    <AppBar position="static" className={classes.appBar} elevation={0}>
-      <Toolbar className={classes.toolbar}>
-        <Typography variant="h6" className={classes.title}>
-          <AccountCircle />
+    <StyledAppBar position="sticky">
+      <Toolbar>
+        <Typography variant="h6" component={Link} to="/" sx={{ 
+          flexGrow: 0,
+          textDecoration: 'none',
+          color: 'inherit',
+          display: 'flex',
+          alignItems: 'center',
+          mr: 4
+        }}>
           Biometric Attendance
         </Typography>
-        <div className={classes.navButtons}>
-          <Button
-            component={RouterLink}
-            to="/"
-            className={`${classes.button} ${isActive('/') ? 'active' : ''}`}
-          >
-            <Dashboard className={classes.icon} />
-            Dashboard
-          </Button>
-          <Button
-            component={RouterLink}
-            to="/face-recognition"
-            className={`${classes.button} ${isActive('/face-recognition') ? 'active' : ''}`}
-          >
-            <Face className={classes.icon} />
-            Face Recognition
-          </Button>
-          <Button
-            component={RouterLink}
-            to="/qr-scanner"
-            className={`${classes.button} ${isActive('/qr-scanner') ? 'active' : ''}`}
-          >
-            <CropFree className={classes.icon} />
-            QR Scanner
-          </Button>
-          <Button
-            component={RouterLink}
-            to="/register"
-            className={`${classes.button} ${isActive('/register') ? 'active' : ''}`}
-          >
-            <PersonAdd className={classes.icon} />
-            Register
-          </Button>
-        </div>
+
+        <Box sx={{ display: 'flex', flexGrow: 1, justifyContent: 'flex-end' }}>
+          {navItems.map((item) => (
+            <StyledButton
+              key={item.path}
+              component={Link}
+              to={item.path}
+              isactive={isActive(item.path).toString()}
+              startIcon={item.icon}
+            >
+              {item.label}
+            </StyledButton>
+          ))}
+        </Box>
       </Toolbar>
-    </AppBar>
+    </StyledAppBar>
   );
 };
 
